@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logo to Dot Matrix</title>
+<style>
+  :root{
+    --paper:#f3efe6;
+    --paper-2:#e9e4d8;
+    --ink:#17171a;
+    --ink-soft:#5c5a52;
+    --line:#d8d1c1;
+    --line-strong:#c3baa6;
+    --accent:#ff4a2b;
+    --accent-ink:#b62d13;
+    --stage:#16181d;
+    --stage-2:#1d2027;
+    --panel:#fbf9f3;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.4;
+    padding-bottom:64px;
+  }
+  a{color:var(--accent-ink);}
+
+  header{
+    border-bottom:2px solid var(--ink);
+    padding:22px 26px 18px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  }
+  .brandline{display:flex;align-items:center;gap:14px;}
+  .glyph{
+    width:38px;height:38px;flex:none;
+    display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:2px;
+  }
+  .glyph i{background:var(--line-strong);border-radius:1px;}
+  .glyph i.on{background:var(--accent);}
+  h1{
+    font-size:24px;font-weight:800;letter-spacing:-0.5px;margin:0;line-height:1;
+  }
+  .tag{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:0.5px;text-transform:uppercase;margin-top:4px;}
+  .kicker{font-family:var(--mono);font-size:11px;color:var(--ink-soft);text-align:right;letter-spacing:0.5px;max-width:280px;}
+  .kicker b{color:var(--ink);}
+
+  main{
+    display:grid;
+    grid-template-columns:340px minmax(0,1fr);
+    gap:0;
+    align-items:stretch;
+  }
+  @media(max-width:900px){ main{grid-template-columns:1fr;} }
+
+  /* ---- Controls ---- */
+  .controls{
+    border-right:2px solid var(--ink);
+    padding:20px 22px 40px;
+    min-width:0;
+  }
+  @media(max-width:900px){ .controls{border-right:none;border-bottom:2px solid var(--ink);} }
+
+  .drop{
+    border:2px dashed var(--line-strong);
+    border-radius:10px;
+    padding:22px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+    background:var(--panel);
+  }
+  .drop:hover, .drop.hot{ border-color:var(--accent); background:#fff; }
+  .drop b{display:block;font-size:14px;margin-bottom:4px;}
+  .drop span{font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
+  .drop .filemeta{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--accent-ink);word-break:break-all;}
+
+  .grp{margin-top:22px;}
+  .grp > .lbl{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;
+    color:var(--ink-soft);margin-bottom:10px;display:flex;align-items:center;gap:8px;
+  }
+  .grp > .lbl::after{content:"";height:1px;flex:1;background:var(--line);}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .row label{font-size:13px;font-weight:600;}
+  .row .val{font-family:var(--mono);font-size:12px;color:var(--accent-ink);min-width:44px;text-align:right;}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;
+    background:var(--line-strong);outline:none;margin:6px 0 2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--ink);border:3px solid var(--paper);box-shadow:0 0 0 1px var(--ink);cursor:pointer;
+  }
+  .field{margin-bottom:14px;}
+  .field .val{float:right;}
+
+  .seg{display:flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;}
+  .seg button{
+    flex:1;border:none;background:transparent;padding:8px 6px;font-family:var(--mono);font-size:11px;
+    text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;color:var(--ink-soft);border-right:1.5px solid var(--ink);
+  }
+  .seg button:last-child{border-right:none;}
+  .seg button.active{background:var(--ink);color:var(--paper);}
+
+  .toggles{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{
+    font-family:var(--mono);font-size:11px;padding:7px 11px;border:1.5px solid var(--line-strong);
+    border-radius:20px;cursor:pointer;background:var(--panel);user-select:none;color:var(--ink-soft);
+  }
+  .chip.on{border-color:var(--ink);background:var(--ink);color:var(--paper);}
+
+  .swatches{display:flex;gap:12px;flex-wrap:wrap;}
+  .swatch{display:flex;flex-direction:column;gap:5px;align-items:center;}
+  .swatch span{font-family:var(--mono);font-size:9.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.5px;}
+  input[type=color]{
+    width:44px;height:32px;border:1.5px solid var(--line-strong);border-radius:6px;background:none;cursor:pointer;padding:2px;
+  }
+
+  /* ---- Stage / right ---- */
+  .stage-wrap{padding:20px 22px 30px;min-width:0;display:flex;flex-direction:column;}
+  .tabs{display:flex;gap:0;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;width:max-content;margin-bottom:16px;}
+  .tabs button{
+    border:none;background:transparent;padding:9px 18px;font-family:var(--mono);font-size:11.5px;cursor:pointer;
+    text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-soft);border-right:1.5px solid var(--ink);
+  }
+  .tabs button:last-child{border-right:none;}
+  .tabs button.active{background:var(--accent);color:#fff;}
+
+  .stage{
+    background:var(--stage);
+    border-radius:14px;
+    border:1px solid #000;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 18px 40px -24px rgba(0,0,0,.5);
+    display:flex;align-items:center;justify-content:center;
+    min-height:360px;position:relative;overflow:hidden;padding:24px;
+  }
+  .stage.grid-bg{
+    background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size:22px 22px;
+  }
+  #matrixCanvas,#demoCanvas{max-width:100%;height:auto;image-rendering:auto;}
+  .stagenote{
+    position:absolute;bottom:10px;left:14px;font-family:var(--mono);font-size:10px;
+    color:rgba(255,255,255,.4);letter-spacing:0.5px;
+  }
+
+  .demo-layout{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+  .phone{
+    width:230px;flex:none;background:#0f1115;border:8px solid #05060a;border-radius:40px;
+    padding:14px 12px 20px;box-shadow:0 24px 60px -30px rgba(0,0,0,.7);position:relative;
+  }
+  .phone .notch{width:70px;height:5px;border-radius:5px;background:#2a2d34;margin:2px auto 14px;}
+  .phone .screen{background:var(--stage);border-radius:22px;overflow:hidden;height:360px;position:relative;
+    display:flex;align-items:flex-start;justify-content:center;}
+  .demo-side{flex:1;min-width:220px;max-width:320px;}
+  .demo-side h3{font-size:15px;margin:0 0 4px;}
+  .demo-side p{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;font-family:var(--mono);line-height:1.6;}
+
+  /* ---- Export ---- */
+  .export{
+    margin-top:20px;border-top:1.5px dashed var(--line-strong);padding-top:18px;
+  }
+  .export .lbl{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-soft);margin-bottom:12px;}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  button.act{
+    font-family:var(--mono);font-size:11.5px;padding:9px 15px;border-radius:8px;cursor:pointer;
+    border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);letter-spacing:0.4px;
+    display:inline-flex;align-items:center;gap:7px;transition:transform .08s, background .12s;
+  }
+  button.act:hover{background:#fff;}
+  button.act:active{transform:translateY(1px);}
+  button.act.primary{background:var(--ink);color:var(--paper);}
+  button.act.primary:hover{background:#000;}
+  button.act.accent{background:var(--accent);color:#fff;border-color:var(--accent-ink);}
+
+  .code{
+    background:var(--stage);color:#d7dbe2;border-radius:10px;padding:14px 16px;
+    font-family:var(--mono);font-size:11.5px;line-height:1.55;max-height:240px;overflow:auto;
+    white-space:pre;border:1px solid #000;
+  }
+  .code .k{color:#ffab8f;} .code .n{color:#8fd4ff;} .code .s{color:#a9e6a0;}
+  .stat{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:8px;}
+  .stat b{color:var(--accent-ink);}
+  .hidden{display:none !important;}
+  .hint{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);line-height:1.6;margin-top:6px;}
+
+  /* source overlay */
+  .overlay{
+    position:fixed;inset:0;background:rgba(20,20,22,.6);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:28px;z-index:50;
+  }
+  .modal{
+    background:var(--panel);border:2px solid var(--ink);border-radius:14px;
+    width:min(760px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.6);
+  }
+  .modal .mhead{padding:16px 20px;border-bottom:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .modal .mhead b{font-size:15px;}
+  .modal .mhead p{margin:2px 0 0;font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
+  .modal .mbody{padding:16px 20px;overflow:auto;}
+  .modal textarea{
+    width:100%;height:300px;font-family:var(--mono);font-size:11px;line-height:1.45;
+    border:1.5px solid var(--line-strong);border-radius:8px;padding:12px;resize:vertical;
+    background:#fff;color:var(--ink);white-space:pre;
+  }
+  .modal .mfoot{padding:14px 20px;border-top:1.5px solid var(--line-strong);display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .modal .mfoot .steps{font-family:var(--mono);font-size:11px;color:var(--ink-soft);flex:1;min-width:180px;line-height:1.5;}
+  .xbtn{border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<header>
+  <div class="brandline">
+    <div class="glyph" id="headGlyph"></div>
+    <div>
+      <h1>Logo → Dot Matrix</h1>
+      <div class="tag">square-grid generator + refresh animation harness</div>
+    </div>
+  </div>
+  <div class="kicker">Drop a logo, tune the grid, then export the <b>matrix data</b> to drive your pull-to-refresh in code.</div>
+</header>
+
+<main>
+  <!-- CONTROLS -->
+  <section class="controls">
+    <div class="drop" id="drop">
+      <b>Drop / click to upload logo</b>
+      <span>PNG with transparency works best · SVG, JPG ok</span>
+      <div class="filemeta" id="filemeta">sample mark loaded</div>
+      <input type="file" id="fileInput" accept="image/*" class="hidden">
+    </div>
+
+    <div class="grp">
+      <div class="lbl">Grid</div>
+      <div class="field">
+        <label>Columns <span class="val" id="colsVal">18</span></label>
+        <input type="range" id="cols" min="4" max="64" value="18">
+      </div>
+      <div class="field">
+        <label>Trim padding <span class="val" id="trimVal">on</span></label>
+        <div class="toggles"><div class="chip on" data-toggle="trim">auto-crop to art</div></div>
+      </div>
+      <div class="hint">Rows follow your logo's aspect ratio to keep cells square.</div>
+    </div>
+
+    <div class="grp">
+      <div class="lbl">Cell rendering</div>
+      <div class="seg" id="modeSeg">
+        <button data-mode="binary" class="active">Binary</button>
+        <button data-mode="shades">Shades</button>
+        <button data-mode="size">Size</button>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>Shape</label>
+        <div class="toggles">
+          <div class="chip on" data-shape="square">square</div>
+          <div class="chip" data-shape="circle">circle</div>
+        </div>
+      </div>
+      <div class="field" id="thresholdField">
+        <label>Threshold <span class="val" id="thresholdVal">0.50</span></label>
+        <input type="range" id="threshold" min="0.02" max="0.98" step="0.01" value="0.5">
+      </div>
+      <div class="field hidden" id="levelsField">
+        <label>Shade levels <span class="val" id="levelsVal">2</span></label>
+        <input type="range" id="levels" min="2" max="6" step="1" value="2">
+      </div>
+      <div class="field">
+        <label>Contrast <span class="val" id="contrastVal">1.4</span></label>
+        <input type="range" id="contrast" min="0.4" max="3" step="0.05" value="1.4">
+      </div>
+      <div class="toggles">
+        <div class="chip" data-toggle="invert">invert ink</div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="lbl">Dot geometry</div>
+      <div class="field">
+        <label>Dot fill <span class="val" id="fillVal">80%</span></label>
+        <input type="range" id="fill" min="20" max="100" step="1" value="80">
+      </div>
+      <div class="field">
+        <label>Corner radius <span class="val" id="radiusVal">15%</span></label>
+        <input type="range" id="radius" min="0" max="50" step="1" value="15">
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="lbl">Palette</div>
+      <div class="swatches">
+        <div class="swatch"><input type="color" id="bgColor" value="#2b2e33"><span>bg</span></div>
+        <div class="swatch"><input type="color" id="dotColor" value="#c9cdd4"><span>dot</span></div>
+        <div class="swatch"><input type="color" id="dotColor2" value="#6c7078"><span>dot dim</span></div>
+      </div>
+      <div class="hint">In Shades mode, dots blend from <b>dot</b> (darkest ink) toward <b>dot dim</b> (lightest).</div>
+    </div>
+  </section>
+
+  <!-- STAGE -->
+  <section class="stage-wrap">
+    <div class="tabs" id="tabs">
+      <button data-tab="matrix" class="active">Matrix preview</button>
+      <button data-tab="demo">Pull-to-refresh</button>
+    </div>
+
+    <div id="tab-matrix">
+      <div class="stage grid-bg">
+        <canvas id="matrixCanvas" width="600" height="360"></canvas>
+        <div class="stagenote" id="matrixNote">18 × 18</div>
+      </div>
+    </div>
+
+    <div id="tab-demo" class="hidden">
+      <div class="stage grid-bg">
+        <div class="demo-layout">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="screen"><canvas id="demoCanvas" width="206" height="360"></canvas></div>
+          </div>
+          <div class="demo-side">
+            <h3>Refresh harness</h3>
+            <p>Scrub the pull, or play the release loop. This runs off the same matrix you export — a radial ripple keyed to each dot's distance from center.</p>
+            <div class="field">
+              <label style="font-size:13px;font-weight:600;color:#e8eaee">Pull distance <span class="val" id="pullVal" style="color:#ffb199">0%</span></label>
+              <input type="range" id="pull" min="0" max="100" value="0">
+            </div>
+            <div class="btnrow">
+              <button class="act accent" id="playBtn">▶ Play release</button>
+              <button class="act" id="stopBtn" style="background:#23262c;color:#e8eaee;border-color:#3a3e46">■ Stop</button>
+            </div>
+            <p style="font-size:11px;margin-top:4px">Style: <b id="animStyle">radial ripple</b> · edit <code>animConfig</code> in the export snippet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="export">
+      <div class="lbl">Export &amp; data</div>
+      <div class="btnrow">
+        <!-- <button class="act accent" id="dlHtml">⇩ Get this tool (.html source)</button> -->
+        <button class="act primary" id="copyJson">Copy matrix JSON</button>
+        <button class="act" id="dlJson">Download .json</button>
+        <button class="act" id="dlSvg">Download .svg</button>
+        <button class="act" id="dlPng">Download .png</button>
+        <button class="act" id="copyCells">Copy cell list</button>
+      </div>
+      <div class="code" id="preview"></div>
+      <div class="stat" id="stat"></div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay hidden" id="srcOverlay">
+  <div class="modal">
+    <div class="mhead">
+      <div>
+        <b>Save this tool as a file</b>
+        <p>full self-contained source · paste into an empty <code>.html</code> file</p>
+      </div>
+      <button class="xbtn" id="srcClose">×</button>
+    </div>
+    <div class="mbody">
+      <textarea id="srcArea" readonly="" spellcheck="false"></textarea>
+    </div>
+    <div class="mfoot">
+      <div class="steps">1&nbsp;Copy all → 2&nbsp;paste into a new file named <b>index.html</b> → 3&nbsp;host it anywhere.</div>
+      <button class="act" id="tryDownload" style="border-color:var(--line-strong)">Try direct download</button>
+      <button class="act accent" id="srcCopy">Copy all source</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------------- state ---------------- */
+const S = {
+  cols:18, mode:"binary", shape:"square",
+  threshold:0.5, levels:2, contrast:1.4,
+  invert:false, trim:true,
+  fill:0.80, radius:0.15,
+  bg:"#2b2e33", dot:"#c9cdd4", dot2:"#6c7078",
+};
+
+let srcCanvas = document.createElement("canvas");   // holds cropped source art
+let srcCtx = srcCanvas.getContext("2d");
+const dCanvas = document.createElement("canvas");    // downsample buffer
+const dCtx = dCanvas.getContext("2d");
+
+let current = null; // {cols, rows, intensity:[[..]]}
+
+/* ---------------- helpers ---------------- */
+const $ = s => document.querySelector(s);
+const clamp = (v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const hexToRgb = h=>{h=h.replace("#","");return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};};
+const lerp=(a,b,t)=>a+(b-a)*t;
+function mix(c1,c2,t){const a=hexToRgb(c1),b=hexToRgb(c2);return `rgb(${Math.round(lerp(a.r,b.r,t))},${Math.round(lerp(a.g,b.g,t))},${Math.round(lerp(a.b,b.b,t))})`;}
+
+/* ---------------- load image into srcCanvas (with optional trim) ---------------- */
+function ingest(img){
+  // draw to a working canvas at a sane resolution
+  const maxDim = 520;
+  let w = img.width, h = img.height;
+  const sc = Math.min(1, maxDim/Math.max(w,h));
+  w = Math.max(1,Math.round(w*sc)); h = Math.max(1,Math.round(h*sc));
+  const tmp = document.createElement("canvas"); tmp.width=w; tmp.height=h;
+  const tctx = tmp.getContext("2d");
+  tctx.clearRect(0,0,w,h);
+  tctx.drawImage(img,0,0,w,h);
+
+  let box = {x0:0,y0:0,x1:w,y1:h};
+  if(S.trim){
+    box = contentBounds(tctx.getImageData(0,0,w,h)) || box;
+  }
+  const bw = box.x1-box.x0, bh = box.y1-box.y0;
+  srcCanvas.width = bw; srcCanvas.height = bh;
+  srcCtx.clearRect(0,0,bw,bh);
+  srcCtx.drawImage(tmp, box.x0,box.y0,bw,bh, 0,0,bw,bh);
+  build();
+}
+
+/* find bounding box of visible / non-background content */
+function contentBounds(imgData){
+  const {data,width:w,height:h}=imgData;
+  // detect background: sample corners
+  const corner=(x,y)=>{const i=(y*w+x)*4;return [data[i],data[i+1],data[i+2],data[i+3]];};
+  const c=[corner(0,0),corner(w-1,0),corner(0,h-1),corner(w-1,h-1)];
+  const anyTransparent = c.some(p=>p[3]<20);
+  const bgLum = (c[0][0]*0.299+c[0][1]*0.587+c[0][2]*0.114);
+  let x0=w,y0=h,x1=0,y1=0,found=false;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=(y*w+x)*4; const a=data[i+3];
+    let content;
+    if(anyTransparent){ content = a>25; }
+    else { const l=data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114; content = Math.abs(l-bgLum)>28; }
+    if(content){found=true; if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y;}
+  }
+  if(!found) return null;
+  const pad=Math.round(Math.max(w,h)*0.02);
+  return {x0:Math.max(0,x0-pad),y0:Math.max(0,y0-pad),x1:Math.min(w,x1+1+pad),y1:Math.min(h,y1+1+pad)};
+}
+
+/* ---------------- build matrix ---------------- */
+function build(){
+  if(!srcCanvas.width){ return; }
+  const cols = S.cols;
+  const ar = srcCanvas.height/srcCanvas.width;
+  const rows = Math.max(1, Math.round(cols*ar));
+  dCanvas.width=cols; dCanvas.height=rows;
+  dCtx.clearRect(0,0,cols,rows);
+  dCtx.imageSmoothingEnabled=true; dCtx.imageSmoothingQuality="high";
+  dCtx.drawImage(srcCanvas,0,0,cols,rows);
+  const data = dCtx.getImageData(0,0,cols,rows).data;
+
+  const intensity=[];
+  for(let r=0;r<rows;r++){
+    const row=[];
+    for(let c=0;c<cols;c++){
+      const i=(r*cols+c)*4;
+      const a=data[i+3]/255;
+      const lum=(0.299*data[i]+0.587*data[i+1]+0.114*data[i+2])/255;
+      let v = a * (S.invert ? lum : (1-lum));
+      // contrast around midpoint
+      v = clamp((v-0.5)*S.contrast + 0.5);
+      row.push(v);
+    }
+    intensity.push(row);
+  }
+  current={cols,rows,intensity};
+  render();
+  updateExport();
+  buildDemoCells();
+}
+
+/* value shown per cell given mode -> returns {on, shade(0..1), scale(0..1)} */
+function cellOut(v){
+  if(S.mode==="binary"){
+    const on = v>=S.threshold;
+    return {on, shade:1, scale:1};
+  }
+  if(S.mode==="shades"){
+    const q = Math.round(v*S.levels)/S.levels; // 0..1 quantized
+    return {on:q>0, shade:q, scale:1};
+  }
+  // size
+  const on = v>=0.06;
+  return {on, shade:1, scale:Math.pow(v,0.75)};
+}
+
+function drawDot(ctx, x, y, cell, out){
+  const base = cell*S.fill;
+  const size = base*out.scale;
+  if(size<=0.4) return;
+  const px = x + (cell-size)/2, py = y + (cell-size)/2;
+  // color
+  let color = S.dot;
+  if(S.mode==="shades"){ color = mix(S.dot2, S.dot, out.shade); } // dim->full as shade grows
+  ctx.fillStyle=color;
+  if(S.shape==="circle"){
+    ctx.beginPath(); ctx.arc(px+size/2,py+size/2,size/2,0,Math.PI*2); ctx.fill();
+  } else {
+    const r = Math.min(size/2, size*S.radius);
+    roundRect(ctx,px,py,size,size,r); ctx.fill();
+  }
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+/* ---------------- render matrix preview ---------------- */
+function render(){
+  if(!current) return;
+  const cvs = $("#matrixCanvas"), ctx = cvs.getContext("2d");
+  const {cols,rows,intensity}=current;
+  const stage = cvs.parentElement;
+  const availW = Math.max(160, stage.clientWidth - 48);
+  const availH = 380;
+  const cell = Math.max(3, Math.floor(Math.min(availW/cols, availH/rows)));
+  const W = cell*cols, H = cell*rows;
+  const dpr = Math.min(2, window.devicePixelRatio||1);
+  cvs.width=W*dpr; cvs.height=H*dpr; cvs.style.width=W+"px"; cvs.style.height=H+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle=S.bg; ctx.fillRect(0,0,W,H);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const out=cellOut(intensity[r][c]);
+    if(!out.on) continue;
+    drawDot(ctx, c*cell, r*cell, cell, out);
+  }
+  $("#matrixNote").textContent = `${cols} × ${rows}`;
+  // header glyph mirror (first 4x4 corner-ish sample)
+  paintHeadGlyph();
+}
+
+/* ---------------- export ---------------- */
+function matrixValues(){
+  const {cols,rows,intensity}=current;
+  const m=[];
+  for(let r=0;r<rows;r++){
+    const row=[];
+    for(let c=0;c<cols;c++){
+      const v=intensity[r][c]; const out=cellOut(v);
+      if(S.mode==="binary") row.push(out.on?1:0);
+      else if(S.mode==="shades") row.push(Math.round(out.shade*S.levels));
+      else row.push(out.on?Math.round(v*1000)/1000:0);
+    }
+    m.push(row);
+  }
+  return m;
+}
+function cellList(){
+  const {cols,rows,intensity}=current;
+  const cx=(cols-1)/2, cy=(rows-1)/2;
+  const maxD=Math.hypot(cx,cy)||1;
+  const cells=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const v=intensity[r][c]; const out=cellOut(v);
+    if(!out.on) continue;
+    const val = S.mode==="binary"?1 : S.mode==="shades"?Math.round(out.shade*S.levels) : Math.round(v*1000)/1000;
+    cells.push({x:c,y:r,v:val,d:Math.round(Math.hypot(c-cx,r-cy)/maxD*1000)/1000});
+  }
+  return cells;
+}
+function buildPayload(){
+  const {cols,rows}=current;
+  return {
+    meta:{cols,rows,mode:S.mode,shape:S.shape,
+      threshold:S.mode==="binary"?S.threshold:undefined,
+      levels:S.mode==="shades"?S.levels:undefined,
+      generated:new Date().toISOString().slice(0,10)},
+    matrix:matrixValues(),
+    cells:cellList()
+  };
+}
+function updateExport(){
+  if(!current) return;
+  const p=buildPayload();
+  const cellCount=p.cells.length;
+  const total=current.cols*current.rows;
+  // pretty, compact preview (matrix rows on single lines)
+  const mLines = p.matrix.map(r=>"    ["+r.join(",")+"]").join(",\n");
+  const html =
+`<span class="k">meta</span>: { cols: <span class="n">${p.meta.cols}</span>, rows: <span class="n">${p.meta.rows}</span>, mode: <span class="s">"${p.meta.mode}"</span> },
+<span class="k">matrix</span>: [
+${mLines.replace(/(\d+(\.\d+)?)/g,'<span class="n">$1</span>')}
+],
+<span class="k">cells</span>: [ ${cellCount} active &rarr; { x, y, v, d(0..1 from center) } ]`;
+  $("#preview").innerHTML=html;
+  $("#stat").innerHTML=`<b>${cellCount}</b> active cells of ${total} &middot; grid <b>${current.cols}×${current.rows}</b> &middot; mode <b>${S.mode}</b>`;
+}
+
+function buildSVG(){
+  const {cols,rows,intensity}=current;
+  const cell=20, gap=0, W=cols*cell, H=rows*cell;
+  let out=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">\n<rect width="${W}" height="${H}" fill="${S.bg}"/>\n`;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const o=cellOut(intensity[r][c]); if(!o.on) continue;
+    const size=cell*S.fill*(S.mode==="size"?o.scale:1); if(size<0.5)continue;
+    const x=c*cell+(cell-size)/2, y=r*cell+(cell-size)/2;
+    let fill=S.dot; if(S.mode==="shades") fill=mix(S.dot2,S.dot,o.shade);
+    if(S.shape==="circle") out+=`<circle cx="${(x+size/2).toFixed(1)}" cy="${(y+size/2).toFixed(1)}" r="${(size/2).toFixed(1)}" fill="${fill}"/>\n`;
+    else { const rad=Math.min(size/2,size*S.radius); out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${size.toFixed(1)}" height="${size.toFixed(1)}" rx="${rad.toFixed(1)}" fill="${fill}"/>\n`; }
+  }
+  return out+"</svg>";
+}
+
+function download(name, content, type){
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=name; a.rel="noopener";
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1500);
+}
+function flash(btn,txt){const o=btn.textContent;btn.textContent=txt;setTimeout(()=>btn.textContent=o,1100);}
+
+/* ---------------- pull-to-refresh demo ---------------- */
+let demoCells=[], demoDims={cols:0,rows:0}, anim={raf:0,t0:0,playing:false,pull:0};
+function buildDemoCells(){
+  if(!current) return;
+  const {cols,rows}=current;
+  demoDims={cols,rows};
+  demoCells=cellList(); // reuse: has x,y,v,d
+  drawDemo();
+}
+function drawDemo(){
+  const cvs=$("#demoCanvas"), ctx=cvs.getContext("2d");
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const W=cvs.clientWidth||206, H=360;
+  cvs.width=W*dpr; cvs.height=H*dpr; cvs.style.height=H+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle=S.bg; ctx.fillRect(0,0,W,H);
+  if(!demoCells.length) return;
+  const {cols,rows}=demoDims;
+  // fit logo into upper area of screen
+  const boxW=W*0.7, boxH=H*0.42;
+  const cell=Math.min(boxW/cols, boxH/rows);
+  const gridW=cell*cols, gridH=cell*rows;
+  // pull pushes the logo down a bit (like content stretch) + reveal
+  const pull=anim.pull; // 0..1
+  const top = 40 + pull*46;
+  const left=(W-gridW)/2;
+  const t=(performance.now()-anim.t0)/1000;
+
+  for(const c of demoCells){
+    // reveal: cells appear as pull grows, ordered by distance from center (assembles outward)
+    const appear = clamp((pull - c.d*0.6)/0.4);
+    if(appear<=0 && !anim.playing) continue;
+    // ripple brightness when playing
+    let bright=1;
+    if(anim.playing){
+      bright = 0.45 + 0.55*(0.5+0.5*Math.sin(t*4.5 - c.d*5.2));
+    } else {
+      bright = appear;
+    }
+    const size=cell*S.fill* (anim.playing? (0.7+0.3*bright) : (0.6+0.4*appear));
+    if(size<0.5) continue;
+    const x=left + c.x*cell + (cell-size)/2;
+    const y=top + c.y*cell + (cell-size)/2;
+    let col = S.mode==="shades" ? mix(S.dot2,S.dot,clamp((c.v/Math.max(1,S.levels)))) : S.dot;
+    ctx.globalAlpha = clamp(anim.playing?bright:appear, 0.05,1);
+    ctx.fillStyle=col;
+    if(S.shape==="circle"){ctx.beginPath();ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);ctx.fill();}
+    else{roundRect(ctx,x,y,size,size,Math.min(size/2,size*S.radius));ctx.fill();}
+  }
+  ctx.globalAlpha=1;
+  // hint text
+  ctx.fillStyle="rgba(255,255,255,.28)";
+  ctx.font="10px ui-monospace,monospace"; ctx.textAlign="center";
+  ctx.fillText(anim.playing?"refreshing…":(pull>0.9?"release to refresh":"pull down"), W/2, top+gridH+26);
+}
+function loop(){
+  if(!anim.playing) return;
+  drawDemo();
+  anim.raf=requestAnimationFrame(loop);
+}
+function playDemo(){
+  anim.t0=performance.now();
+  // animate pull to 1 quickly, then hold + ripple
+  anim.pull=1; anim.playing=true;
+  $("#pull").value=100; $("#pullVal").textContent="100%";
+  cancelAnimationFrame(anim.raf); loop();
+}
+function stopDemo(){ anim.playing=false; cancelAnimationFrame(anim.raf); drawDemo(); }
+
+/* ---------------- header glyph ---------------- */
+function paintHeadGlyph(){
+  const g=$("#headGlyph"); if(!g) return;
+  if(g.childElementCount===0){ for(let i=0;i<16;i++) g.appendChild(document.createElement("i")); }
+  const on=[0,1,4,5,10,15,3,6,9,12];
+  [...g.children].forEach((el,i)=>el.className = on.includes(i)?"on":"");
+}
+
+/* ---------------- default sample mark ---------------- */
+function makeSample(){
+  const c=document.createElement("canvas"); c.width=200;c.height=200;
+  const x=c.getContext("2d");
+  x.clearRect(0,0,200,200);
+  x.fillStyle="#111";
+  // wallet card
+  roundRect(x,34,64,132,88,16); x.fill();
+  // coin overlap
+  x.beginPath(); x.arc(140,132,34,0,Math.PI*2); x.fill();
+  // punch hole in coin (transparent) to add detail
+  x.globalCompositeOperation="destination-out";
+  x.beginPath(); x.arc(140,132,15,0,Math.PI*2); x.fill();
+  x.globalCompositeOperation="source-over";
+  // slit on card
+  x.clearRect(48,86,104,10);
+  const img=new Image(); img.onload=()=>ingest(img); img.src=c.toDataURL();
+}
+
+/* ---------------- wire up UI ---------------- */
+function bindRange(id, key, fmt, transform){
+  const el=$("#"+id), out=$("#"+id+"Val");
+  const upd=()=>{
+    let v=parseFloat(el.value);
+    S[key]= transform?transform(v):v;
+    out.textContent= fmt?fmt(v):v;
+    build();
+  };
+  el.addEventListener("input",upd);
+  return upd;
+}
+
+bindRange("cols","cols",v=>v,v=>Math.round(v));
+$("#cols").addEventListener("input",e=>$("#colsVal").textContent=e.target.value);
+bindRange("threshold","threshold",v=>v.toFixed(2));
+bindRange("levels","levels",v=>String(v),v=>Math.round(v));
+bindRange("contrast","contrast",v=>v.toFixed(2));
+bindRange("fill","fill",v=>Math.round(v)+"%",v=>v/100);
+bindRange("radius","radius",v=>Math.round(v)+"%",v=>v/100);
+
+$("#modeSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  [...$("#modeSeg").children].forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); S.mode=b.dataset.mode;
+  $("#thresholdField").classList.toggle("hidden",S.mode!=="binary");
+  $("#levelsField").classList.toggle("hidden",S.mode!=="shades");
+  build();
+});
+
+document.querySelectorAll("[data-shape]").forEach(chip=>chip.addEventListener("click",()=>{
+  document.querySelectorAll("[data-shape]").forEach(c=>c.classList.remove("on"));
+  chip.classList.add("on"); S.shape=chip.dataset.shape; build();
+}));
+document.querySelectorAll("[data-toggle]").forEach(chip=>chip.addEventListener("click",()=>{
+  const k=chip.dataset.toggle; S[k]=!S[k]; chip.classList.toggle("on",S[k]);
+  if(k==="trim"){ $("#trimVal").textContent=S.trim?"on":"off"; if(lastImg) ingest(lastImg); }
+  else build();
+}));
+
+["bgColor","dotColor","dotColor2"].forEach(id=>{
+  const map={bgColor:"bg",dotColor:"dot",dotColor2:"dot2"};
+  $("#"+id).addEventListener("input",e=>{S[map[id]]=e.target.value; build();});
+});
+
+/* tabs */
+$("#tabs").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  [...$("#tabs").children].forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  const t=b.dataset.tab;
+  $("#tab-matrix").classList.toggle("hidden",t!=="matrix");
+  $("#tab-demo").classList.toggle("hidden",t!=="demo");
+  if(t==="demo"){ buildDemoCells(); } else { render(); }
+});
+
+/* upload */
+let lastImg=null;
+const drop=$("#drop"), fileInput=$("#fileInput");
+drop.addEventListener("click",()=>fileInput.click());
+fileInput.addEventListener("change",e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); });
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot");}));
+drop.addEventListener("drop",e=>{ const f=e.dataTransfer.files[0]; if(f) loadFile(f); });
+window.addEventListener("paste",e=>{ const it=[...e.clipboardData.items].find(i=>i.type.startsWith("image")); if(it) loadFile(it.getAsFile()); });
+
+function loadFile(file){
+  const reader=new FileReader();
+  reader.onload=()=>{ const img=new Image(); img.onload=()=>{lastImg=img; ingest(img);}; img.src=reader.result; };
+  reader.readAsDataURL(file);
+  $("#filemeta").textContent=file.name||"pasted image";
+}
+
+/* export buttons */
+$("#copyJson").addEventListener("click",e=>{ navigator.clipboard.writeText(JSON.stringify(buildPayload(),null,2)); flash(e.target,"Copied ✓"); });
+$("#copyCells").addEventListener("click",e=>{ navigator.clipboard.writeText(JSON.stringify(cellList())); flash(e.target,"Copied ✓"); });
+$("#dlJson").addEventListener("click",()=>download("logo-matrix.json",JSON.stringify(buildPayload(),null,2),"application/json"));
+$("#dlSvg").addEventListener("click",()=>download("logo-matrix.svg",buildSVG(),"image/svg+xml"));
+$("#dlPng").addEventListener("click",()=>{ const url=$("#matrixCanvas").toDataURL("image/png"); const a=document.createElement("a"); a.href=url; a.download="logo-matrix.png"; a.click(); });
+
+/* demo controls */
+$("#pull").addEventListener("input",e=>{ anim.playing=false; cancelAnimationFrame(anim.raf); anim.pull=e.target.value/100; $("#pullVal").textContent=e.target.value+"%"; drawDemo(); });
+$("#playBtn").addEventListener("click",playDemo);
+$("#stopBtn").addEventListener("click",stopDemo);
+
+window.addEventListener("resize",()=>{ if(!$("#tab-matrix").classList.contains("hidden")) render(); else drawDemo(); });
+
+/* go */
+// capture pristine source now, before any async render mutates the DOM
+const PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+
+function copyText(text){
+  if(navigator.clipboard && window.isSecureContext){
+    return navigator.clipboard.writeText(text).then(()=>true).catch(()=>false);
+  }
+  return Promise.resolve(false);
+}
+
+$("#dlHtml").addEventListener("click",()=>{
+  const area=$("#srcArea"); area.value=PRISTINE_HTML;
+  $("#srcOverlay").classList.remove("hidden");
+  area.focus(); area.select();
+});
+$("#srcClose").addEventListener("click",()=>$("#srcOverlay").classList.add("hidden"));
+$("#srcOverlay").addEventListener("click",e=>{ if(e.target.id==="srcOverlay") $("#srcOverlay").classList.add("hidden"); });
+$("#srcCopy").addEventListener("click",async e=>{
+  const area=$("#srcArea"); area.focus(); area.select();
+  let ok=await copyText(PRISTINE_HTML);
+  if(!ok){ try{ ok=document.execCommand("copy"); }catch(_){ok=false;} }
+  flash(e.target, ok?"Copied ✓":"Select all + ⌘C");
+});
+$("#tryDownload").addEventListener("click",e=>{ download("dot-matrix-generator.html", PRISTINE_HTML, "text/html"); flash(e.target,"Sent to downloads"); });
+
+makeSample();
+</script></body></html>
