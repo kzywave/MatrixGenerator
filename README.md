@@ -11,8 +11,8 @@
 - **Real-Time Matrix Processing**: Upload or paste any image/logo and see it instantly rendered as a dot matrix.
 - **Customizable Grid Settings**: Fine-tune column count, dot sizing, spacing, threshold, and contrast.
 - **Multiple Visual Styles**: Circle, square, rounded dots, and customizable dot colors and backgrounds.
-- **Interactive Pull / Animation Demo**: Test dynamic scaling, spring physics, and bounce animations.
-- **Export Options**: Export your generated matrix graphics as **SVG**, high-res **PNG**, or structured **JSON**.
+- **Interactive Pull / Animation Demo**: Test dynamic pull gestures and preview the **transitions.dev Matrix Dot Loader** with 4 motion patterns (`pulse`, `scan`, `orbit`, `twinkle`) and configurable cycle tokens.
+- **Export Options**: Export your generated matrix graphics as **SVG**, high-res **PNG**, structured **JSON**, or copy **CSS & React code snippets** compatible with [transitions.dev](https://transitions.dev/detail.html?t=matrix-dot-loader).
 - **Zero Dependencies**: Self-contained client-side application running natively in modern web browsers.
 
 ---

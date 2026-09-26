@@ -163,8 +163,12 @@
   .phone .screen{background:var(--stage);border-radius:22px;overflow:hidden;height:360px;position:relative;
     display:flex;align-items:flex-start;justify-content:center;}
   .demo-side{flex:1;min-width:220px;max-width:320px;}
-  .demo-side h3{font-size:15px;margin:0 0 4px;}
+  .demo-side h3{font-size:15px;margin:0 0 4px;color:#f3efe6;}
   .demo-side p{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;font-family:var(--mono);line-height:1.6;}
+  #loaderPatternSeg{border-color:#3a3e46;background:#1a1c22;border-radius:8px;}
+  #loaderPatternSeg button{color:#9da3af;border-right:1.5px solid #3a3e46;}
+  #loaderPatternSeg button:last-child{border-right:none;}
+  #loaderPatternSeg button.active{background:var(--accent);color:#fff;}
 
   /* ---- Export ---- */
   .export{
@@ -330,7 +334,20 @@
           </div>
           <div class="demo-side">
             <h3>Refresh harness</h3>
-            <p>Scrub the pull, or play the release loop. This runs off the same matrix you export — a radial ripple keyed to each dot's distance from center.</p>
+            <p>Matrix Dot Loader (transitions.dev) powered by your logo mark. Test pull distance or release into the selected motion pattern.</p>
+            <div class="field">
+              <label style="font-size:13px;font-weight:600;color:#e8eaee">Motion pattern</label>
+              <div class="seg" id="loaderPatternSeg" style="margin-top:6px;">
+                <button data-variant="pulse" class="active">Pulse</button>
+                <button data-variant="scan">Scan</button>
+                <button data-variant="orbit">Orbit</button>
+                <button data-variant="twinkle">Twinkle</button>
+              </div>
+            </div>
+            <div class="field">
+              <label style="font-size:13px;font-weight:600;color:#e8eaee">Cycle duration <span class="val" id="cycleVal" style="color:#ffb199">1200ms</span></label>
+              <input type="range" id="cycleDur" min="400" max="3000" step="50" value="1200">
+            </div>
             <div class="field">
               <label style="font-size:13px;font-weight:600;color:#e8eaee">Pull distance <span class="val" id="pullVal" style="color:#ffb199">0%</span></label>
               <input type="range" id="pull" min="0" max="100" value="0">
@@ -339,7 +356,7 @@
               <button class="act accent" id="playBtn">▶ Play release</button>
               <button class="act" id="stopBtn" style="background:#23262c;color:#e8eaee;border-color:#3a3e46">■ Stop</button>
             </div>
-            <p style="font-size:11px;margin-top:4px">Style: <b id="animStyle">radial ripple</b> · edit <code>animConfig</code> in the export snippet.</p>
+            <p style="font-size:11px;margin-top:4px">Pattern: <b id="animStyle" style="color:#fff">pulse (radial wave)</b> · tokens: <span id="animCycleLabel" style="color:#ffb199">1200ms</span></p>
           </div>
         </div>
       </div>
@@ -350,6 +367,7 @@
       <div class="lbl">Export &amp; data</div>
       <div class="btnrow">
         <!-- <button class="act accent" id="dlHtml">⇩ Get this tool (.html source)</button> -->
+        <button class="act accent" id="openSnippet">Copy CSS &amp; Code Snippet</button>
         <button class="act primary" id="copyJson">Copy matrix JSON</button>
         <button class="act" id="dlJson">Download .json</button>
         <button class="act" id="dlSvg">Download .svg</button>
@@ -382,6 +400,36 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="snippetOverlay">
+  <div class="modal">
+    <div class="mhead">
+      <div>
+        <b>transitions.dev Matrix Dot Loader Snippet</b>
+        <p>Namespaced CSS (.t-*) &amp; component code generated from your logo matrix</p>
+      </div>
+      <button class="xbtn" id="snippetClose">×</button>
+    </div>
+    <div style="padding:12px 20px 10px;background:var(--paper-2);border-bottom:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div class="seg" id="snippetTabs" style="width:max-content;">
+        <button data-stab="css" class="active">CSS</button>
+        <button data-stab="react">React</button>
+        <button data-stab="html">HTML</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--ink-soft);">
+        Pattern: <b id="snippetPatternBadge" style="color:var(--accent-ink)">pulse</b> &middot; Grid: <b id="snippetGridBadge">31&times;28</b>
+      </div>
+    </div>
+    <div class="mbody">
+      <textarea id="snippetArea" readonly="" spellcheck="false" style="height:320px;"></textarea>
+    </div>
+    <div class="mfoot">
+      <div class="steps">Motion tokens: <code>--matrix-cycle: <span id="snippetCycleBadge">1200ms</span></code> &middot; <code>--matrix-ease: ease-in-out</code></div>
+      <button class="act" id="snippetDl" style="border-color:var(--line-strong)">Download snippet</button>
+      <button class="act accent" id="snippetCopy">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
 
@@ -392,6 +440,7 @@ const S = {
   invert:false, trim:true,
   fill:0.80, radius:0.15,
   bg:"#2b2e33", dot:"#c9cdd4", dot2:"#6c7078",
+  loaderVariant:"pulse", loaderCycle:1200,
 };
 
 let srcCanvas = document.createElement("canvas");   // holds cropped source art
@@ -631,15 +680,65 @@ function download(name, content, type){
 }
 function flash(btn,txt){const o=btn.textContent;btn.textContent=txt;setTimeout(()=>btn.textContent=o,1100);}
 
-/* ---------------- pull-to-refresh demo ---------------- */
+/* ---------------- pull-to-refresh demo (transitions.dev Matrix Dot Loader) ---------------- */
 let demoCells=[], demoDims={cols:0,rows:0}, anim={raf:0,t0:0,playing:false,pull:0};
+let currentSnippetTab = "css";
+
+function computeCellDelay(c, cols, rows, variant, cycle){
+  const cx = (cols - 1) / 2;
+  const cy = (rows - 1) / 2;
+  if(variant === "scan"){
+    return Math.round((c.x / Math.max(1, cols - 1)) * 0.8 * cycle);
+  }
+  if(variant === "orbit"){
+    // Clockwise angle starting from top (-PI/2)
+    let angle = Math.atan2(c.y - cy, c.x - cx) + Math.PI / 2;
+    if(angle < 0) angle += Math.PI * 2;
+    return Math.round((angle / (Math.PI * 2)) * cycle);
+  }
+  if(variant === "twinkle"){
+    // Deterministic pseudo-random hash distributed across cycle
+    const hash = ((c.x * 374761393 + c.y * 668265263) ^ 0x5bf03635) >>> 0;
+    const frac = (hash % 10000) / 10000;
+    return Math.round(frac * cycle);
+  }
+  // pulse (default): center outward radial wave
+  return Math.round(c.d * 0.5 * cycle);
+}
+
+function evalMatrixPulse(phase){
+  // transitions.dev keyframe profile:
+  // 0%, 45%, 100% { base }
+  // 15%           { active }
+  if(phase < 0.15){
+    return phase / 0.15;
+  } else if(phase < 0.45){
+    return 1 - (phase - 0.15) / 0.30;
+  }
+  return 0;
+}
+
+function updateAnimStyleText(){
+  const map = {
+    pulse: "pulse (radial wave)",
+    scan: "scan (left-to-right sweep)",
+    orbit: "orbit (clockwise perimeter sweep)",
+    twinkle: "twinkle (matrix scatter)"
+  };
+  const desc = map[S.loaderVariant] || S.loaderVariant;
+  const st = $("#animStyle"); if(st) st.textContent = desc;
+  const cl = $("#animCycleLabel"); if(cl) cl.textContent = `${S.loaderCycle}ms`;
+}
+
 function buildDemoCells(){
   if(!current) return;
   const {cols,rows}=current;
   demoDims={cols,rows};
   demoCells=cellList(); // reuse: has x,y,v,d
+  updateAnimStyleText();
   drawDemo();
 }
+
 function drawDemo(){
   const cvs=$("#demoCanvas"), ctx=cvs.getContext("2d");
   const dpr=Math.min(2,window.devicePixelRatio||1);
@@ -657,34 +756,50 @@ function drawDemo(){
   const pull=anim.pull; // 0..1
   const top = 40 + pull*46;
   const left=(W-gridW)/2;
-  const t=(performance.now()-anim.t0)/1000;
+  const elapsed = performance.now() - anim.t0;
+  const cycle = S.loaderCycle || 1200;
 
   for(const c of demoCells){
     // reveal: cells appear as pull grows, ordered by distance from center (assembles outward)
     const appear = clamp((pull - c.d*0.6)/0.4);
     if(appear<=0 && !anim.playing) continue;
-    // ripple brightness when playing
-    let bright=1;
+
+    let bright = 0;
     if(anim.playing){
-      bright = 0.45 + 0.55*(0.5+0.5*Math.sin(t*4.5 - c.d*5.2));
+      const d = computeCellDelay(c, cols, rows, S.loaderVariant, cycle);
+      const phase = (((elapsed - d) % cycle) + cycle) % cycle / cycle;
+      bright = evalMatrixPulse(phase);
     } else {
       bright = appear;
     }
-    const size=cell*S.fill* (anim.playing? (0.7+0.3*bright) : (0.6+0.4*appear));
-    if(size<0.5) continue;
-    const x=left + c.x*cell + (cell-size)/2;
-    const y=top + c.y*cell + (cell-size)/2;
-    let col = S.mode==="shades" ? mix(S.dot2,S.dot,clamp((c.v/Math.max(1,S.levels)))) : S.dot;
-    ctx.globalAlpha = clamp(anim.playing?bright:appear, 0.05,1);
-    ctx.fillStyle=col;
-    if(S.shape==="circle"){ctx.beginPath();ctx.arc(x+size/2,y+size/2,size/2,0,Math.PI*2);ctx.fill();}
-    else{roundRect(ctx,x,y,size,size,Math.min(size/2,size*S.radius));ctx.fill();}
+
+    const size = cell * S.fill * (anim.playing ? (0.75 + 0.25 * bright) : (0.6 + 0.4 * appear));
+    if(size < 0.5) continue;
+    const x = left + c.x * cell + (cell - size)/2;
+    const y = top + c.y * cell + (cell - size)/2;
+
+    let col;
+    if(anim.playing){
+      col = mix(S.dot2, S.dot, bright);
+    } else if(S.mode === "shades") {
+      col = mix(S.dot2, S.dot, clamp(c.v / Math.max(1, S.levels)));
+    } else {
+      col = S.dot;
+    }
+
+    ctx.globalAlpha = clamp(anim.playing ? (0.35 + 0.65 * bright) : appear, 0.05, 1);
+    ctx.fillStyle = col;
+    if(S.shape === "circle"){
+      ctx.beginPath(); ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2); ctx.fill();
+    } else {
+      roundRect(ctx, x, y, size, size, Math.min(size/2, size * S.radius)); ctx.fill();
+    }
   }
   ctx.globalAlpha=1;
   // hint text
-  ctx.fillStyle="rgba(255,255,255,.28)";
+  ctx.fillStyle="rgba(255,255,255,.35)";
   ctx.font="10px ui-monospace,monospace"; ctx.textAlign="center";
-  ctx.fillText(anim.playing?"refreshing…":(pull>0.9?"release to refresh":"pull down"), W/2, top+gridH+26);
+  ctx.fillText(anim.playing?`refreshing (${S.loaderVariant})…`:(pull>0.9?"release to refresh":"pull down"), W/2, top+gridH+26);
 }
 function loop(){
   if(!anim.playing) return;
@@ -693,12 +808,180 @@ function loop(){
 }
 function playDemo(){
   anim.t0=performance.now();
-  // animate pull to 1 quickly, then hold + ripple
+  // animate pull to 1 quickly, then hold + play loader pattern
   anim.pull=1; anim.playing=true;
   $("#pull").value=100; $("#pullVal").textContent="100%";
   cancelAnimationFrame(anim.raf); loop();
 }
 function stopDemo(){ anim.playing=false; cancelAnimationFrame(anim.raf); drawDemo(); }
+
+/* ---------------- transitions.dev snippet export ---------------- */
+function buildDelaysObject(){
+  if(!current) return {};
+  const {cols, rows} = current;
+  const delays = {};
+  const cycle = S.loaderCycle || 1200;
+  for(const c of demoCells){
+    const idx = c.y * cols + c.x;
+    delays[idx] = computeCellDelay(c, cols, rows, S.loaderVariant, cycle);
+  }
+  return delays;
+}
+
+function generateSnippetCode(type){
+  if(!current) return "";
+  const {cols, rows} = current;
+  const cycle = S.loaderCycle || 1200;
+  const radiusPercent = S.shape === "circle" ? "50%" : Math.round(S.radius * 100) + "%";
+  const delays = buildDelaysObject();
+
+  if(type === "css"){
+    return `/* ============================================================ */
+/* transitions.dev — Matrix Dot Loader                          */
+/* Motion tokens and namespaced styles for ${cols}×${rows} grid */
+/* Pattern: ${S.loaderVariant}                                   */
+/* ============================================================ */
+
+:root {
+  --matrix-cycle: ${cycle}ms;
+  --matrix-base: ${S.dot2};
+  --matrix-active: ${S.dot};
+  --matrix-ease: ease-in-out;
+}
+
+.t-matrix {
+  display: grid;
+  grid-template-columns: repeat(${cols}, 5px);
+  grid-auto-rows: 5px;
+  gap: 2px;
+}
+
+.t-matrix i {
+  display: block;
+  background: var(--matrix-base);
+  border-radius: ${radiusPercent};
+  animation: t-matrix-pulse var(--matrix-cycle) var(--matrix-ease) infinite;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+
+/* Inactive cells in the matrix grid render nothing */
+.t-matrix i.is-gap {
+  visibility: hidden;
+  animation: none;
+}
+
+@keyframes t-matrix-pulse {
+  0%, 45%, 100% { background-color: var(--matrix-base); }
+  15%           { background-color: var(--matrix-active); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-matrix i { animation: none !important; }
+}`;
+  }
+
+  if(type === "react"){
+    return `/* ============================================================ */
+/* transitions.dev — Matrix Dot Loader (React)                  */
+/* Pattern: ${S.loaderVariant} | Grid: ${cols}×${rows}          */
+/* ============================================================ */
+
+import React from "react";
+// Requires matrix-dot-loader.css (.t-matrix, @keyframes t-matrix-pulse)
+
+const COLS = ${cols};
+const ROWS = ${rows};
+const DEFAULT_CYCLE = ${cycle};
+
+// Delay map (ms) keyed by grid index (row * COLS + col)
+const CELL_DELAYS = ${JSON.stringify(delays, null, 2)};
+
+export function MatrixDotLoader({
+  cycle = DEFAULT_CYCLE,
+  label = "Loading",
+  className = ""
+}) {
+  return (
+    <div
+      className={\`t-matrix \${className}\`.trim()}
+      role="status"
+      aria-label={label}
+      style={{
+        display: "grid",
+        gridTemplateColumns: \`repeat(\${COLS}, 5px)\`,
+        gridAutoRows: "5px",
+        gap: "2px",
+        "--matrix-cycle": \`\${cycle}ms\`
+      }}
+    >
+      {Array.from({ length: COLS * ROWS }, (_, idx) => {
+        const delay = CELL_DELAYS[idx];
+        if (delay === undefined) {
+          return <i key={idx} className="is-gap" aria-hidden="true" />;
+        }
+        return (
+          <i
+            key={idx}
+            style={{ "--d": delay }}
+            aria-hidden="true"
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+export default MatrixDotLoader;`;
+  }
+
+  // HTML
+  return `<!-- ============================================================ -->
+<!-- transitions.dev — Matrix Dot Loader (HTML)                   -->
+<!-- Pattern: ${S.loaderVariant} | Grid: ${cols}×${rows}          -->
+<!-- ============================================================ -->
+
+<!-- Include the CSS from the CSS tab -->
+<div
+  class="t-matrix"
+  id="matrixLoader"
+  role="status"
+  aria-label="Loading"
+  style="display:grid;grid-template-columns:repeat(${cols}, 5px);grid-auto-rows:5px;gap:2px;"
+></div>
+
+<script>
+(function() {
+  const COLS = ${cols};
+  const ROWS = ${rows};
+  const DELAYS = ${JSON.stringify(delays)};
+  const container = document.getElementById("matrixLoader");
+  if (!container) return;
+
+  const total = COLS * ROWS;
+  const frag = document.createDocumentFragment();
+  for (let idx = 0; idx < total; idx++) {
+    const dot = document.createElement("i");
+    const d = DELAYS[idx];
+    if (d === undefined) {
+      dot.className = "is-gap";
+    } else {
+      dot.style.setProperty("--d", d);
+    }
+    frag.appendChild(dot);
+  }
+  container.appendChild(frag);
+})();
+<\/script>`;
+}
+
+function updateSnippetModal(){
+  const area = $("#snippetArea");
+  if(!area) return;
+  area.value = generateSnippetCode(currentSnippetTab);
+  $("#snippetPatternBadge").textContent = S.loaderVariant;
+  $("#snippetCycleBadge").textContent = `${S.loaderCycle}ms`;
+  if(current) $("#snippetGridBadge").textContent = `${current.cols}×${current.rows}`;
+}
 
 /* ---------------- header glyph ---------------- */
 function paintHeadGlyph(){
@@ -805,9 +1088,65 @@ $("#dlSvg").addEventListener("click",()=>download("logo-matrix.svg",buildSVG(),"
 $("#dlPng").addEventListener("click",()=>{ const url=$("#matrixCanvas").toDataURL("image/png"); const a=document.createElement("a"); a.href=url; a.download="logo-matrix.png"; a.click(); });
 
 /* demo controls */
+$("#loaderPatternSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  [...$("#loaderPatternSeg").children].forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  S.loaderVariant = b.dataset.variant;
+  updateAnimStyleText();
+  drawDemo();
+  updateSnippetModal();
+});
+
+$("#cycleDur").addEventListener("input", e => {
+  S.loaderCycle = parseInt(e.target.value, 10);
+  $("#cycleVal").textContent = S.loaderCycle + "ms";
+  updateAnimStyleText();
+  drawDemo();
+  updateSnippetModal();
+});
+
 $("#pull").addEventListener("input",e=>{ anim.playing=false; cancelAnimationFrame(anim.raf); anim.pull=e.target.value/100; $("#pullVal").textContent=e.target.value+"%"; drawDemo(); });
 $("#playBtn").addEventListener("click",playDemo);
 $("#stopBtn").addEventListener("click",stopDemo);
+
+/* snippet modal events */
+$("#openSnippet").addEventListener("click", () => {
+  updateSnippetModal();
+  $("#snippetOverlay").classList.remove("hidden");
+  $("#snippetArea").focus();
+  $("#snippetArea").select();
+});
+$("#snippetClose").addEventListener("click", () => $("#snippetOverlay").classList.add("hidden"));
+$("#snippetOverlay").addEventListener("click", e => {
+  if (e.target.id === "snippetOverlay") $("#snippetOverlay").classList.add("hidden");
+});
+$("#snippetTabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  [...$("#snippetTabs").children].forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  currentSnippetTab = b.dataset.stab;
+  updateSnippetModal();
+});
+$("#snippetCopy").addEventListener("click", async e => {
+  const text = $("#snippetArea").value;
+  let ok = await copyText(text);
+  if (!ok) {
+    try {
+      $("#snippetArea").focus();
+      $("#snippetArea").select();
+      ok = document.execCommand("copy");
+    } catch (_) {
+      ok = false;
+    }
+  }
+  flash(e.target, ok ? "Copied ✓" : "Select all + ⌘C");
+});
+$("#snippetDl").addEventListener("click", () => {
+  const exts = { css: "matrix-loader.css", react: "MatrixDotLoader.jsx", html: "matrix-loader.html" };
+  const mime = { css: "text/css", react: "text/javascript", html: "text/html" };
+  download(exts[currentSnippetTab] || "snippet.txt", $("#snippetArea").value, mime[currentSnippetTab] || "text/plain");
+});
 
 window.addEventListener("resize",()=>{ if(!$("#tab-matrix").classList.contains("hidden")) render(); else drawDemo(); });
 
