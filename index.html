@@ -3,6 +3,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Logo to Dot Matrix</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=6" id="favicon">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=6">
+<link rel="shortcut icon" href="favicon.ico?v=6">
 <style>
   :root{
     --paper:#f3efe6;
@@ -240,8 +243,8 @@
     <div class="grp">
       <div class="lbl">Grid</div>
       <div class="field">
-        <label>Columns <span class="val" id="colsVal">18</span></label>
-        <input type="range" id="cols" min="4" max="64" value="18">
+        <label>Columns <span class="val" id="colsVal">31</span></label>
+        <input type="range" id="cols" min="4" max="64" value="31">
       </div>
       <div class="field">
         <label>Trim padding <span class="val" id="trimVal">on</span></label>
@@ -273,8 +276,8 @@
         <input type="range" id="levels" min="2" max="6" step="1" value="2">
       </div>
       <div class="field">
-        <label>Contrast <span class="val" id="contrastVal">1.4</span></label>
-        <input type="range" id="contrast" min="0.4" max="3" step="0.05" value="1.4">
+        <label>Contrast <span class="val" id="contrastVal">0.40</span></label>
+        <input type="range" id="contrast" min="0.4" max="3" step="0.05" value="0.4">
       </div>
       <div class="toggles">
         <div class="chip" data-toggle="invert">invert ink</div>
@@ -314,7 +317,7 @@
     <div id="tab-matrix">
       <div class="stage grid-bg">
         <canvas id="matrixCanvas" width="600" height="360"></canvas>
-        <div class="stagenote" id="matrixNote">18 × 18</div>
+        <div class="stagenote" id="matrixNote">31 × 28</div>
       </div>
     </div>
 
@@ -384,8 +387,8 @@
 
 /* ---------------- state ---------------- */
 const S = {
-  cols:18, mode:"binary", shape:"square",
-  threshold:0.5, levels:2, contrast:1.4,
+  cols:31, mode:"binary", shape:"square",
+  threshold:0.5, levels:2, contrast:0.4,
   invert:false, trim:true,
   fill:0.80, radius:0.15,
   bg:"#2b2e33", dot:"#c9cdd4", dot2:"#6c7078",
@@ -479,6 +482,7 @@ function build(){
   render();
   updateExport();
   buildDemoCells();
+  updateFavicon();
 }
 
 /* value shown per cell given mode -> returns {on, shade(0..1), scale(0..1)} */
@@ -705,22 +709,19 @@ function paintHeadGlyph(){
 }
 
 /* ---------------- default sample mark ---------------- */
+const DEFAULT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 69 62" width="69" height="62">
+  <path d="M 9.6 31.0 L 9.2 30.8 L 8.8 28.2 L 8.2 27.8 L 7.8 25.2 L 7.2 24.2 L 7.2 12.8 L 7.4 12.0 L 7.8 11.9 L 8.2 10.1 L 8.8 9.9 L 9.2 8.1 L 11.8 5.9 L 12.4 4.1 L 13.9 3.8 L 15.2 2.2 L 17.8 1.8 L 18.2 1.2 L 20.8 0.8 L 21.6 0.2 L 24.8 0.0 L 30.4 0.2 L 31.2 0.8 L 34.8 1.2 L 35.1 1.8 L 36.9 2.2 L 37.1 2.8 L 37.9 3.2 L 37.9 3.8 L 37.2 4.1 L 36.9 4.8 L 33.1 6.2 L 31.8 7.9 L 29.1 10.2 L 29.4 11.0 L 30.1 10.2 L 31.9 9.8 L 34.1 7.2 L 35.9 6.8 L 36.1 6.2 L 37.9 5.8 L 38.4 5.2 L 42.9 4.9 L 44.3 4.2 L 47.1 4.0 L 48.7 4.2 L 49.3 4.8 L 53.7 5.2 L 54.1 5.8 L 55.9 6.2 L 56.1 6.8 L 57.9 7.2 L 59.1 8.8 L 60.9 9.2 L 61.1 9.8 L 62.8 11.1 L 63.2 12.9 L 65.8 15.2 L 66.2 17.8 L 66.8 18.1 L 67.2 19.9 L 67.8 20.4 L 68.2 25.6 L 68.8 26.1 L 69.0 27.2 L 68.2 28.3 L 67.8 32.7 L 67.2 33.2 L 66.8 35.8 L 66.2 36.1 L 65.8 37.9 L 64.2 39.1 L 63.8 40.9 L 63.2 41.1 L 61.9 42.8 L 60.1 43.2 L 58.9 44.8 L 57.1 45.2 L 56.9 45.8 L 55.1 46.2 L 54.9 46.8 L 53.1 47.2 L 52.8 47.8 L 50.2 48.2 L 49.8 48.8 L 47.2 49.2 L 47.0 49.6 L 46.1 49.8 L 32.9 49.8 L 32.0 49.6 L 31.8 49.2 L 29.2 48.8 L 28.8 48.2 L 26.2 47.8 L 25.9 47.2 L 24.1 46.8 L 23.9 46.2 L 22.1 45.8 L 20.9 44.2 L 19.8 44.0 L 19.0 44.4 L 20.1 45.8 L 21.9 46.2 L 23.1 47.8 L 24.9 48.2 L 25.2 48.8 L 27.8 49.2 L 28.2 49.8 L 30.8 50.2 L 31.4 50.8 L 37.6 51.2 L 39.1 52.0 L 43.2 51.0 L 46.6 51.4 L 47.0 51.8 L 46.8 52.9 L 46.2 53.1 L 45.9 53.8 L 42.1 57.2 L 41.9 57.8 L 40.1 58.2 L 39.9 58.8 L 38.1 59.2 L 37.9 59.8 L 36.1 60.2 L 35.8 60.8 L 33.2 61.2 L 33.0 61.6 L 25.5 62.0 L 21.8 61.8 L 20.8 61.2 L 18.2 60.8 L 17.8 60.2 L 15.2 59.8 L 14.9 59.2 L 13.1 58.8 L 11.9 57.2 L 10.1 56.8 L 9.9 56.2 L 9.2 55.9 L 5.8 52.1 L 5.2 51.9 L 4.8 50.1 L 3.2 48.9 L 2.8 47.1 L 2.2 46.8 L 1.8 44.2 L 1.2 43.8 L 0.8 41.2 L 0.2 40.4 L 0.0 37.2 L 0.4 31.0 L 0.8 30.9 L 1.2 29.1 L 1.8 28.9 L 2.2 27.1 L 2.8 26.9 L 3.2 25.1 L 5.6 23.0 L 6.2 27.7 L 6.8 28.1 L 7.2 29.9 L 7.8 30.1 L 8.2 31.9 L 8.8 32.1 L 9.2 33.9 L 9.8 34.1 L 10.2 35.9 L 12.8 38.1 L 13.2 39.9 L 13.8 40.1 L 16.1 42.8 L 17.9 42.8 L 17.9 42.2 L 15.2 39.9 L 14.8 39.1 L 14.2 38.9 L 13.8 37.1 L 11.2 34.9 L 9.8 31.1 Z M 28.6 28.0 L 26.2 30.2 L 25.8 32.8 L 25.2 33.2 L 24.6 37.0 L 24.2 36.9 L 23.8 35.1 L 23.2 34.7 L 22.8 30.3 L 22.1 29.1 L 22.2 25.3 L 22.8 24.8 L 23.2 21.2 L 23.8 20.8 L 24.2 18.2 L 25.8 16.9 L 26.2 15.1 L 26.8 14.9 L 27.1 14.2 L 28.9 12.6 L 28.9 11.4 L 28.4 11.0 L 26.8 12.9 L 26.2 13.1 L 25.8 14.9 L 24.2 16.1 L 23.8 17.9 L 23.2 18.1 L 22.8 19.9 L 22.2 20.2 L 21.8 23.8 L 21.2 24.6 L 21.2 33.4 L 21.8 34.2 L 22.2 36.8 L 23.8 38.1 L 24.2 39.9 L 24.8 40.1 L 27.1 42.8 L 28.9 43.2 L 30.2 44.8 L 32.8 45.2 L 33.2 45.8 L 34.5 46.0 L 36.8 45.8 L 37.1 45.2 L 38.9 44.8 L 39.1 44.2 L 40.8 42.9 L 41.2 41.1 L 41.9 40.8 L 42.8 39.4 L 43.0 34.4 L 42.6 31.0 L 41.2 29.9 L 40.6 28.1 L 39.1 27.8 L 37.8 26.2 L 35.2 25.8 L 34.4 25.1 L 32.2 25.2 L 31.9 25.8 L 30.1 26.2 L 28.8 27.9 Z" fill="#222" fill-rule="evenodd"/>
+</svg>`;
+
 function makeSample(){
-  const c=document.createElement("canvas"); c.width=200;c.height=200;
-  const x=c.getContext("2d");
-  x.clearRect(0,0,200,200);
-  x.fillStyle="#111";
-  // wallet card
-  roundRect(x,34,64,132,88,16); x.fill();
-  // coin overlap
-  x.beginPath(); x.arc(140,132,34,0,Math.PI*2); x.fill();
-  // punch hole in coin (transparent) to add detail
-  x.globalCompositeOperation="destination-out";
-  x.beginPath(); x.arc(140,132,15,0,Math.PI*2); x.fill();
-  x.globalCompositeOperation="source-over";
-  // slit on card
-  x.clearRect(48,86,104,10);
-  const img=new Image(); img.onload=()=>ingest(img); img.src=c.toDataURL();
+  const img = new Image();
+  img.onload = () => {
+    lastImg = img;
+    ingest(img);
+  };
+  img.src = "data:image/svg+xml;utf8," + encodeURIComponent(DEFAULT_SVG);
+  const meta = $("#filemeta");
+  if(meta) meta.textContent = "sample-mark.svg (default)";
 }
 
 /* ---------------- wire up UI ---------------- */
@@ -821,11 +822,14 @@ function copyText(text){
   return Promise.resolve(false);
 }
 
-$("#dlHtml").addEventListener("click",()=>{
-  const area=$("#srcArea"); area.value=PRISTINE_HTML;
-  $("#srcOverlay").classList.remove("hidden");
-  area.focus(); area.select();
-});
+const dlHtmlBtn = $("#dlHtml");
+if (dlHtmlBtn) {
+  dlHtmlBtn.addEventListener("click",()=>{
+    const area=$("#srcArea"); area.value=PRISTINE_HTML;
+    $("#srcOverlay").classList.remove("hidden");
+    area.focus(); area.select();
+  });
+}
 $("#srcClose").addEventListener("click",()=>$("#srcOverlay").classList.add("hidden"));
 $("#srcOverlay").addEventListener("click",e=>{ if(e.target.id==="srcOverlay") $("#srcOverlay").classList.add("hidden"); });
 $("#srcCopy").addEventListener("click",async e=>{
@@ -835,6 +839,66 @@ $("#srcCopy").addEventListener("click",async e=>{
   flash(e.target, ok?"Copied ✓":"Select all + ⌘C");
 });
 $("#tryDownload").addEventListener("click",e=>{ download("dot-matrix-generator.html", PRISTINE_HTML, "text/html"); flash(e.target,"Sent to downloads"); });
+
+function updateFavicon(){
+  if(!current) return;
+  const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const {cols, rows, intensity} = current;
+  const cell = 20;
+  const gridW = cols * cell, gridH = rows * cell;
+  const dim = Math.max(gridW, gridH);
+  const offX = (dim - gridW) / 2;
+  const offY = (dim - gridH) / 2;
+  
+  const cvs = document.createElement("canvas");
+  cvs.width = 64; cvs.height = 64;
+  const ctx = cvs.getContext("2d");
+  ctx.clearRect(0, 0, 64, 64);
+  
+  const scale = 64 / dim;
+  const color = isDark ? "#f3efe6" : "#17171a";
+  ctx.fillStyle = color;
+  
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<cols; c++){
+      const out = cellOut(intensity[r][c]);
+      if(!out.on) continue;
+      const base = cell * S.fill;
+      const size = base * out.scale;
+      if(size <= 0.4) continue;
+      const px = (offX + c * cell + (cell - size)/2) * scale;
+      const py = (offY + r * cell + (cell - size)/2) * scale;
+      const psize = size * scale;
+      if(S.shape === "circle"){
+        ctx.beginPath();
+        ctx.arc(px + psize/2, py + psize/2, psize/2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const rad = Math.min(psize/2, psize * S.radius);
+        roundRect(ctx, px, py, psize, psize, rad);
+        ctx.fill();
+      }
+    }
+  }
+  
+  const dataUrl = cvs.toDataURL("image/png");
+  document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+  const link = document.createElement("link");
+  link.id = "favicon";
+  link.rel = "icon";
+  link.type = "image/png";
+  link.href = dataUrl;
+  document.head.appendChild(link);
+}
+
+if (window.matchMedia) {
+  const schemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  if (schemeQuery.addEventListener) {
+    schemeQuery.addEventListener("change", updateFavicon);
+  } else if (schemeQuery.addListener) {
+    schemeQuery.addListener(updateFavicon);
+  }
+}
 
 makeSample();
 </script></body></html>
